@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Proiect tehnologii web</title>
+</head>
+<body>
+    <div class="container">
+        <div class="center">
+            <div id="table-wrapper">
+                <div id="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nume</th>
+                                <th>Pret</th>
+                                <th>Numar Comanda</th>
+                                <th>Rating</th>
+                                <th>Actiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products_table"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column;">
+                <div id="modifyForm" class="collapseBox" style="display: none; flex-direction: column">
+                    <input type="hidden" id="modifyProductId">
+                    <input type="text" id="modifyProductName" placeholder="Nume">
+                    <input type="text" id="modifyProductPrice" placeholder="Pret">
+                    <input type="text" id="modifyProductOrderNum" placeholder="Order Number">
+                    <input type="text" id="modifyProductRating" placeholder="Rating">
+                    <button style="margin-top: 10px; background: #777;" type="button" id="modifySubmit" class="btn">Submit</button>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; margin-top: 20px;">
+                <button style="margin-top: 10px;  background: #777;  color: white" type="button" class="btn" id="collapseContent">Add new item</button>
+                <div id="addForm" class="collapseBox" style="display: none; flex-direction: column">
+                    <input type="text" id="productName" placeholder="Nume">
+                    <input type="text" id="productPrice" placeholder="Pret">
+                    <input type="text" id="productOrderNum" placeholder="Order Number">
+                    <input type="text" id="productRating" placeholder="Rating">
+                    <button style="margin-top: 10px; background: #777;" type="button" id="addSubmit" class="btn">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    const SERVER = 'http://localhost:3000'
+    let products
+    let productTable = document.getElementById('products_table')
+    let collapseBtn = document.getElementById('collapseContent')
+    let menuShow = false
+    let modifyShow = false
+
+    collapseBtn.onclick = () => {
+        if(menuShow == false) {
+            menuShow = true
+            document.getElementById('addForm').style.display = 'flex'
+        } else {
+            menuShow = false
+            document.getElementById('addForm').style.display = 'none'
+        }
+    }
+
+    const fetchProduct = async (id) => {
+        try {
+            const response = await fetch(`${SERVER}/product/${id}`)
+            if (!response.ok) {
+                throw response
+            }
+            const data = await response.json()
+            return data
+        } catch (error) {
+            console.warn(error)
+        }
+    }
+
+    const fetchProducts = async () => {
+        try {
+            const response = await fetch(`${SERVER}/products`)
+            if (!response.ok) {
+                throw response
+            }
+            const data = await response.json()
+            return data
+        } catch (error) {
+            console.warn(error)
+        }
+    }
+
+    async function deleteProduct(id) {
+        try {
+            const res = await fetch(`${SERVER}/product/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+            if (!res.ok) {
+                throw res
+            }
+            if (res.statusText === "Accepted") {
+                location.reload();
+            } else {
+                console.log('Something went wrong! Please try again.')
+            }
+        } catch (error) {
+            console.warn(error)
+        }
+    }
+
+    // modify inputs
+    const modifyProductName = document.getElementById('modifyProductName')
+    const modifyProductPrice = document.getElementById('modifyProductPrice')
+    const modifyOrderNum = document.getElementById('modifyProductOrderNum')
+    const modifyRating = document.getElementById('modifyProductRating')
+    const modifySubmit = document.getElementById('modifySubmit')
+    const modifyProductId = document.getElementById('modifyProductId')
+
+    async function modifyProduct(id) {
+        if(modifyShow == false) {
+            modifyShow = true
+            document.getElementById('modifyForm').style.display = 'flex'
+            let product = await fetchProduct(id)
+            modifyProductName.value = product.Name
+            modifyProductPrice.value = product.Price
+            modifyOrderNum.value = product.OrderNum
+            modifyRating.value = product.Rating
+            modifyProductId.value = product.Id
+        } else {
+            modifyShow = false
+            document.getElementById('modifyForm').style.display = 'none'
+        }
+    }
+
+    window.onload = async () => {
+        products = await fetchProducts()
+        products.forEach((product) => {
+            let row = productTable.insertRow(-1);
+            let cell1 = row.insertCell(0);
+            let cell2 = row.insertCell(1);
+            let cell3 = row.insertCell(2);
+            let cell4 = row.insertCell(3);
+            let cell5 = row.insertCell(4);
+            cell1.innerHTML = product.Name;
+            cell2.innerHTML = product.Price;
+            cell3.innerHTML = product.OrderNum
+            cell4.innerHTML = product.Rating;
+            cell5.innerHTML = `<button class="modifica" onclick='deleteProduct(${product.Id})'>Delete</button><button class="modifica" style="margin-left: 5px;" onclick='modifyProduct(${product.Id})'>Modify</button>`
+        })
+
+        const productName = document.getElementById('productName')
+        const productPrice = document.getElementById('productPrice')
+        const productOrderNum = document.getElementById('productOrderNum')
+        const productRating = document.getElementById('productRating')
+        const addSubmit = document.getElementById('addSubmit')
+
+        addSubmit.onclick = async () => {
+            try {
+                if (productName.value == "" || productPrice.value=="" || productOrderNum.value == "" || productRating.value == "") {
+                    return
+                }
+                const payload = {
+                    Name: productName.value,
+                    Price: productPrice.value,
+                    OrderNum: productOrderNum.value,
+                    Rating: productRating.value
+                }
+                await fetch(`${SERVER}/products`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                })
+                location.reload();
+            } catch (e) {
+                console.warn(e)
+            }
+        }
+
+        modifySubmit.onclick = async () => {
+            try {
+                let productId = modifyProductId.value
+                const payload = {
+                    Name: modifyProductName.value,
+                    Price: modifyProductPrice.value,
+                    OrderNum: modifyOrderNum.value,
+                    Rating: modifyRating.value
+                }
+                await fetch(`${SERVER}/products/${productId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                })
+                // console.log(product)
+                location.reload();
+            } catch (e) {
+                console.warn(e)
+            }
+        }
+    }
+</script>
+<style>
+    #table-scroll {
+        height:400px;
+        overflow:auto;
+        margin-top:20px;
+    }
+    #table-wrapper table {
+        width:100%;
+
+    }
+
+    table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+        max-height: 200px;
+        overflow: auto;
+    }
+
+    td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+    button {
+        border: 0;
+        outline: 0;
+        background-color: whitesmoke;
+        color: black;
+        padding: 10px 20px;
+    }
+
+    .container {
+        height: 500px;
+        position: relative;
+    }
+
+    .center {
+        margin: 0;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        -ms-transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%);
+    }
+
+    .btn:hover {
+        background-color: #b9c1c9;
+        cursor: pointer;
+    }
+
+    .collapseBox {
+        background: whitesmoke;
+        padding: 20px;
+        gap: 10px;
+    }
+    .modifica:hover {
+        color:gray;
+        cursor: pointer;
+    }
+</style>
+</html>
